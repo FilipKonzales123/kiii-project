@@ -4,9 +4,10 @@ metadata:
   name: kiii-project-config
   namespace: kiii
 data:
-  POSTGRES_URL: kiii-project-postgres-service.kiii.svc.cluster.local
-  POSTGRES_DATABASE: postgres
-  POSTGRES_USER: postgres
+  MONGO_HOST: kiii-project-mongo-service.kiii.svc.cluster.local
+  MONGO_PORT: "27017"
+  MONGO_DATABASE: mydatabase
+  MONGO_USERNAME: root
 ---
 apiVersion: v1
 kind: Secret
@@ -15,7 +16,7 @@ metadata:
   namespace: kiii
 type: Opaque
 data:
-  password: d293Z3JlYXRwYXNzd29yZDEj
+  MONGO_PASSWORD: d293cGFzc3dvcmQxMjMj
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -42,12 +43,29 @@ spec:
               cpu: "500m"
           ports:
             - containerPort: 80
-          envFrom:
-            - configMapRef:
-                name: kiii-project-config
           env:
-            - name: POSTGRES_PASSWORD
+            - name: MONGO_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-config
+                  key: MONGO_HOST
+            - name: MONGO_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-config
+                  key: MONGO_PORT
+            - name: MONGO_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-config
+                  key: MONGO_DATABASE
+            - name: MONGO_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-config
+                  key: MONGO_USERNAME
+            - name: MONGO_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: kiii-project-secret
-                  key: password
+                  key: MONGO_PASSWORD

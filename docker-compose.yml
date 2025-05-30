@@ -6,15 +6,20 @@ services:
     ports:
       - 5000:80
     depends_on:
-      - db
+      - mongo
     env_file:
       - .env
     restart: unless-stopped
 
-  db:
-    image: postgres:latest
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
     volumes:
-      - ./db:/var/lib/postgresql/data/
-    env_file:
-      - .env
+      - ./mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
     restart: unless-stopped

@@ -1,33 +1,30 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kiii-project-postgres-config
+  name: kiii-project-mongo-config
   namespace: kiii
 data:
-  POSTGRES_URL: db
-  POSTGRES_DATABASE: postgres
-  POSTGRES_USER: postgres
+  MONGO_INITDB_DATABASE: mydatabase
+  MONGO_INITDB_ROOT_USERNAME: root
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: kiii-project-postgres-secret
+  name: kiii-project-mongo-secret
   namespace: kiii
 type: Opaque
 data:
-  password: d293Z3JlYXRwYXNzd29yZDEj
-
+  MONGO_INITDB_ROOT_PASSWORD: d293cGFzc3dvcmQxMjMj
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: kiii-project-postgres-pvc
+  name: kiii-project-mongo-pvc
   namespace: kiii
   labels:
-    app: postgres
+    app: mongo
 spec:
   storageClassName: local-path
-  capacity:
   accessModes:
     - ReadWriteOnce
   resources:
@@ -37,52 +34,65 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: kiii-project-postgres
+  name: kiii-project-mongo
   namespace: kiii
 spec:
-  serviceName: kiii-project-postgres-service
+  serviceName: kiii-project-mongo-service
+  replicas: 3
   selector:
     matchLabels:
-      app: postgres
-  replicas: 1
+      app: mongo
   template:
     metadata:
       labels:
-        app: postgres
+        app: mongo
         namespace: kiii
     spec:
       containers:
-        - name: postgres
-          image: postgres:latest
-          envFrom:
-            - configMapRef:
-                name: kiii-project-postgres-config
+        - name: mongo
+          image: mongo:latest
           env:
-            - name: POSTGRES_PASSWORD
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-mongo-config
+                  key: MONGO_INITDB_ROOT_USERNAME
+            - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kiii-project-postgres-secret
-                  key: password
+                  name: kiii-project-mongo-secret
+                  key: MONGO_INITDB_ROOT_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-mongo-config
+                  key: MONGO_INITDB_DATABASE
           ports:
-            - containerPort: 5432
-              name: postgres-port
+            - containerPort: 27017
+              name: mongo-port
           volumeMounts:
-            - name: kiii-project-postgres-data
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: kiii-project-postgres-data
-          persistentVolumeClaim:
-            claimName: kiii-project-postgres-pvc
-
+            - name: kiii-project-mongo-data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: kiii-project-mongo-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: kiii-project-postgres-service
+  name: kiii-project-mongo-service
   namespace: kiii
 spec:
   selector:
-    app: postgres
+    app: mongo
   ports:
     - protocol: TCP
-      port: 5432
+      port: 27017
+      targetPort: mongo-port
+  clusterIP: None

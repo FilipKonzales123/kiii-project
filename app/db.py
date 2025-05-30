@@ -1,20 +1,21 @@
 import os
-from sqlalchemy import create_engine, URL
-from sqlalchemy.orm import sessionmaker
+import urllib.parse
+from pymongo import MongoClient
 
-POSTGRES_URL = os.getenv("POSTGRES_URL")
-POSTGRES_DATABASE = os.getenv("POSTGRES_DATABASE")
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
+MONGO_HOST = os.getenv("MONGO_HOST", "mongo")
+MONGO_PORT = int(os.getenv("MONGO_PORT", 27017))
+MONGO_DATABASE = os.getenv("MONGO_DATABASE", "mydatabase")
+MONGO_USERNAME = os.getenv("MONGO_USERNAME")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 
-url = URL.create(
-    drivername="postgresql",
-    username=POSTGRES_USER,
-    password=POSTGRES_PASSWORD,
-    host=POSTGRES_URL,
-    database=POSTGRES_DATABASE,
-    port=5432
-)
+if MONGO_USERNAME and MONGO_PASSWORD:
+    user = urllib.parse.quote_plus(MONGO_USERNAME)
+    password = urllib.parse.quote_plus(MONGO_PASSWORD)
+    uri = f"mongodb://{user}:{password}@{MONGO_HOST}:{MONGO_PORT}/{MONGO_DATABASE}?authSource=admin"
+else:
+    uri = f"mongodb://{MONGO_HOST}:{MONGO_PORT}/{MONGO_DATABASE}"
 
-engine = create_engine(url)
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+client = MongoClient(uri)
+
+def get_db():
+    yield client[MONGO_DATABASE]

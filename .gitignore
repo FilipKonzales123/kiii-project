@@ -5,5 +5,5 @@ __pycache__/
 venv/
 .env
 db/
-
+mongo-data/
 *.log
